@@ -4,6 +4,9 @@
 
   const TAIPEI = { lat: 25.04, lng: 121.545 };
   const PRICE_LABEL = { 1: '$', 2: '$$', 3: '$$$', 4: '$$$$' };
+  // 統一取評分：精選用 google.rating，OSM 用 gr/grc（-1 = 查過但沒有）
+  const ratingOf = (r) => r.google?.rating ?? (r.gr > 0 ? r.gr : null);
+  const ratingCountOf = (r) => r.google?.userRatingCount ?? (r.gr > 0 ? r.grc || 0 : 0);
   // 類型插圖
   const CAT_ICON = {
     '小籠包/點心': '🥟', '早餐': '🍳', '麵食': '🍜', '小吃': '🥡', '夜市': '🏮',
@@ -83,7 +86,8 @@
         <h2>${esc(r.name)}</h2>
         <div class="meta" style="color:#666">${catIcon(r.category)} ${esc(r.category)}${r.price ? ` · ${PRICE_LABEL[r.price]}` : ''} · ${esc(r.district)}${r.dist != null ? ` · <span style="color:#e8792b">${fmtDist(r.dist)}</span>` : ''}</div>
         ${r.reason ? `<div class="why"><b>為什麼推</b>${esc(r.reason)}</div>` : ''}
-        ${(() => { const html = googleBlock(r); return html ? html.replace('<details>', '<details open>') : ''; })()}
+        ${(() => { const html = googleBlock(r); if (html) return html.replace('<details>', '<details open>');
+          return ratingOf(r) != null ? `<div class="g"><span class="g-rating">⭐ ${ratingOf(r).toFixed(1)}</span> <span class="muted">（${ratingCountOf(r).toLocaleString()} 則 · Google）</span> <a class="all-reviews" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.name + ' ' + (r.address || ''))}" target="_blank" rel="noopener noreferrer">去 Google 看評論 ↗</a></div>` : ''; })()}
         ${bookCta(r)}
         <div class="hours">🕒 ${esc(r.hours || '—')}</div>
         <div class="hours">📍 ${esc(r.address || '—')}</div>
@@ -257,11 +261,11 @@
     if (state.price.size) rows = rows.filter((r) => state.price.has(String(r.price)));
     if (state.mrtNear > 0) rows = rows.filter((r) => { const m = nearestMrt(r); return m && m.dist <= state.mrtNear; });
     if (state.origin && state.radius > 0) rows = rows.filter((r) => r.dist <= state.radius);
-    if (state.minRating) rows = rows.filter((r) => (r.google?.rating ?? 0) >= state.minRating && (r.google?.userRatingCount ?? 0) >= 100);
+    if (state.minRating) rows = rows.filter((r) => (ratingOf(r) ?? 0) >= state.minRating && ratingCountOf(r) >= 100);
     // 搜尋時比對分數優先，其次離查詢地名近的；「評分超高」模式高分在前；否則訂位等級優先；再依距離 / 名稱
     rows.sort((a, b) => (q ? (b.score - a.score) : 0) ||
       (bias ? biasDist(a) - biasDist(b) : 0) ||
-      (state.minRating ? (b.google?.rating ?? 0) - (a.google?.rating ?? 0) : 0) || (b.lv - a.lv) ||
+      (state.minRating ? (ratingOf(b) ?? 0) - (ratingOf(a) ?? 0) : 0) || (b.lv - a.lv) ||
       (state.origin ? a.dist - b.dist : a.name.localeCompare(b.name, 'zh-Hant')));
     if (bias) rows.biasName = bias.name;
     return rows;
@@ -291,8 +295,8 @@
     rows.forEach((r) => {
       const m = L.marker([r.lat, r.lng], { icon: pinIcon(r.id === state.activeId, r.lv) })
         .bindTooltip(
-          state.minRating && r.google?.rating != null
-            ? `⭐${r.google.rating.toFixed(1)}（${(r.google.userRatingCount || 0).toLocaleString()} 則）${esc(r.name)}`
+          state.minRating && ratingOf(r) != null
+            ? `⭐${ratingOf(r).toFixed(1)}（${ratingCountOf(r).toLocaleString()} 則）${esc(r.name)}`
             : `${catIcon(r.category)} ${esc(r.name)}${r.lv === 2 ? ' 🪑' : r.lv === 1 ? ' 📞' : ''}`,
           { permanent: labelAll, direction: 'top', offset: [0, -8], className: 'pin-tip' })
         .bindPopup(`<b>${esc(r.name)}</b><br><a href="${navUrl(r)}" target="_blank" rel="noopener noreferrer">🧭 導航</a>`);
@@ -312,7 +316,7 @@
         </div>
         <div class="card-head">
           <h3>${esc(r.name)}</h3>
-          ${g?.found && g.rating != null ? `<button class="stamp" type="button" title="看網友評語">⭐ ${g.rating.toFixed(1)}<small>${(g.userRatingCount || 0).toLocaleString()} 則</small></button>` : ''}
+          ${ratingOf(r) != null ? `<button class="stamp" type="button" title="看網友評語">⭐ ${ratingOf(r).toFixed(1)}<small>${ratingCountOf(r).toLocaleString()} 則</small></button>` : ''}
         </div>
         <div class="meta">📍 ${place}</div>
         <div class="cta-row">${bookCtaParts(r).join('')}<button class="cta ghost more" type="button">⋯ 更多</button></div>`;

@@ -57,14 +57,18 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--limit', type=int, default=190)
     ap.add_argument('--dry-run', action='store_true')
-    ap.add_argument('--booking', action='store_true', help='查可否線上訂位（Place Details reservable，每月免費 1,000）')
+    ap.add_argument('--booking', action='store_true', help='查可否線上訂位（Enterprise+Atmosphere，每月免費 1,000）')
+    ap.add_argument('--rating', action='store_true', help='只抓評分/評論數（Enterprise，每月免費 1,000，與訂位批次額度分開）')
     a = ap.parse_args()
     data = json.load(open(OSM, encoding='utf-8'))
     rows = data['rows']
     mrt = json.load(open(ROOT / 'data/areas.json', encoding='utf-8'))['mrt']
     def mrt_dist(r): return min(hav(r['lat'], r['lng'], s['lat'], s['lng']) for s in mrt)
-    if a.booking:
-        HOT = {'火鍋','燒烤','牛排','台菜','日式','韓式','泰式','義式','海鮮','精緻餐飲','自助餐','中式','港式'}
+    HOT = {'火鍋','燒烤','牛排','台菜','日式','韓式','泰式','義式','海鮮','精緻餐飲','自助餐','中式','港式'}
+    if a.rating:
+        todo = [r for r in rows if 'gr' not in r and not r.get('c') and not r.get('x')]
+        todo.sort(key=lambda r: (0 if r['category'] in HOT else 1, mrt_dist(r)))
+    elif a.booking:
         todo = [r for r in rows if 'b' not in r and not r.get('c') and not r.get('x')]
         todo.sort(key=lambda r: (0 if r['category'] in HOT else 1, mrt_dist(r)))
     else:
@@ -76,8 +80,34 @@ def main():
         print(f'…共 {len(todo)} 筆'); return
     key = load_key()
     today = datetime.date.today().isoformat()
+    if a.rating:
+        got = 0
+        for i, r in enumerate(todo):
+            body = {'textQuery': f"{r['name']} {r.get('address') or r['district']}", 'languageCode': LANG,
+                    'regionCode': 'TW', 'pageSize': 1,
+                    'locationBias': {'circle': {'center': {'latitude': r['lat'], 'longitude': r['lng']}, 'radius': 800.0}}}
+            req = urllib.request.Request('https://places.googleapis.com/v1/places:searchText',
+                data=json.dumps(body).encode(),
+                headers={'Content-Type': 'application/json', 'X-Goog-Api-Key': key,
+                         'X-Goog-FieldMask': 'places.rating,places.userRatingCount,places.businessStatus'})
+            try:
+                with urllib.request.urlopen(req, timeout=30) as resp: res = json.load(resp)
+            except urllib.error.HTTPError as e:
+                if e.code == 429: print(f'配額到頂，停在第 {i} 筆'); break
+                print(f'HTTP {e.code}，跳過 {r["name"]}'); continue
+            p = (res.get('places') or [None])[0]
+            if not p: r['gr'] = -1; continue          # 找不到，標記略過
+            if p.get('businessStatus') == 'CLOSED_PERMANENTLY': r['c'] = 1; r['gr'] = -1; continue
+            r['gr'] = p.get('rating', -1) if p.get('rating') is not None else -1
+            r['grc'] = p.get('userRatingCount', 0)
+            if r['gr'] > 0: got += 1
+            time.sleep(0.15)
+            if (i + 1) % 50 == 0: print(f'{i+1}/{len(todo)}…')
+        json.dump(data, open(OSM, 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
+        done = sum(1 for r in rows if 'gr' in r)
+        print(f'本批抓到評分 {got}｜累計已查評分 {done}/{len(rows)}')
+        return
     if a.booking:
-        import urllib.parse
         found = res_n = 0
         for i, r in enumerate(todo):
             body = {'textQuery': f"{r['name']} {r.get('address') or r['district']}", 'languageCode': LANG,
@@ -86,7 +116,7 @@ def main():
             req = urllib.request.Request('https://places.googleapis.com/v1/places:searchText',
                 data=json.dumps(body).encode(),
                 headers={'Content-Type': 'application/json', 'X-Goog-Api-Key': key,
-                         'X-Goog-FieldMask': 'places.id,places.reservable,places.nationalPhoneNumber,places.googleMapsUri,places.businessStatus'})
+                         'X-Goog-FieldMask': 'places.id,places.reservable,places.nationalPhoneNumber,places.googleMapsUri,places.businessStatus,places.rating,places.userRatingCount'})
             try:
                 with urllib.request.urlopen(req, timeout=30) as resp: res = json.load(resp)
             except urllib.error.HTTPError as e:
@@ -98,6 +128,7 @@ def main():
             r['b'] = 1 if (p.get('reservable') and r['category'] != '速食' and not FASTFOOD.search(r['name'])) else 0
             if r['b']: r['mapsUri'] = p.get('googleMapsUri', ''); res_n += 1
             if p.get('nationalPhoneNumber') and not r.get('phone'): r['phone'] = p['nationalPhoneNumber']; found += 1
+            if p.get('rating') is not None: r['gr'] = p['rating']; r['grc'] = p.get('userRatingCount', 0)
             time.sleep(0.15)
             if (i + 1) % 50 == 0: print(f'{i+1}/{len(todo)}…')
         json.dump(data, open(OSM, 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
