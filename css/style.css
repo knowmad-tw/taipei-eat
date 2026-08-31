@@ -40,6 +40,7 @@ html, body {
   flex-wrap: wrap;
 }
 .brand { display: flex; align-items: center; gap: 16px; }
+.brand > div { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
 a.brand { color: inherit; text-decoration: none; cursor: pointer; }
 #topBtn.on { outline: 3px solid #e8792b; outline-offset: -1px; }
 .mascot { width: 56px; height: 56px; flex: none; }
@@ -68,7 +69,7 @@ h1::after {
   padding: 1px 12px 2px; border-radius: var(--wobble-2);
   transform: rotate(-1.5deg);
 }
-.tagline { margin: 6px 0 0; color: var(--muted); font-size: 14px; }
+.tagline { margin: 0; color: var(--muted); font-size: 15px; }
 .log-btn { display: inline-block; font-size: 14px; }
 .verify-log { text-align: center; margin-top: 8px; }
 
