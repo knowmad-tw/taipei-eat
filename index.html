@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>台北 x 聚餐｜快速定位</title>
+  <meta name="description" content="幫你找到現在訂得到位的台北餐廳：線上訂位優先，其次電話訂位，附導航。">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" crossorigin="">
+  <link rel="stylesheet" href="css/style.css?v=26">
+</head>
+<body>
+
+<header class="top">
+  <a class="brand" href="./" title="回首頁">
+    <svg class="mascot" viewBox="0 0 64 64" aria-hidden="true">
+      <!-- 台灣黑熊 -->
+      <circle cx="19" cy="13" r="7" fill="#111"/>
+      <circle cx="45" cy="13" r="7" fill="#111"/>
+      <path d="M32 6 C45 6 55 15 56 30 C57 44 49 56 32 56 C15 56 7 44 8 30 C9 15 19 6 32 6 Z" fill="#111"/>
+      <circle cx="23" cy="28" r="3.4" fill="#fff"/>
+      <circle cx="41" cy="28" r="3.4" fill="#fff"/>
+      <ellipse cx="32" cy="39" rx="6.2" ry="4.6" fill="#fff"/>
+      <circle cx="32" cy="37.4" r="1.9" fill="#111"/>
+      <path d="M29.6 41.6 Q32 43.4 34.4 41.6" stroke="#111" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+      <path d="M23 51 L32 55.5 L41 51" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M50 16 L62 3 M53.5 19 L64 8" stroke="#111" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+    <div>
+      <h1>台北 × 聚餐<span class="h1-sub">快速訂位</span></h1>
+      <p class="tagline">現在<span class="ink-red">訂得到位</span>的餐廳，不用排隊猜運氣。</p>
+    </div>
+  </a>
+</header>
+
+<section class="hero">
+  <input id="q" type="search" placeholder="🔍 關鍵字：西門和牛涮、火鍋、宵夜…" autocomplete="off">
+  <button id="recoBtn" class="btn btn-primary" type="button">📍 找我附近訂得到位的</button>
+  <button id="topBtn" class="btn btn-primary" type="button">⭐ 評分超高可訂位</button>
+  <span class="hero-or">或</span>
+  <select id="districtSel" aria-label="行政區"><option value="">選行政區</option></select>
+  <select id="mrtSel" aria-label="捷運站"><option value="">選捷運站</option></select>
+  <button id="randomBtn" class="btn btn-orange" type="button">🎲 隨機訂一家</button>
+</section>
+
+<main class="layout">
+  <aside class="panel" aria-label="篩選條件">
+
+    <details class="block fold">
+      <summary><h2 class="label">🪑 訂位方式</h2><span class="picked" id="pickedMode">線上訂位</span><span class="arrow">▾</span></summary>
+      <div class="chips" id="modeChips">
+        <button class="chip mode on" data-value="online" type="button">線上訂位</button>
+        <button class="chip mode" data-value="book" type="button">線上＋電話訂位</button>
+        <button class="chip mode" data-value="all" type="button">全部店家</button>
+      </div>
+      <p class="note" id="modeNote">只顯示 Google 標示可線上訂位的餐廳。</p>
+    </details>
+
+    <details class="block fold">
+      <summary><h2 class="label">你在哪裡？</h2><span class="picked" id="pickedWhere"></span><span class="arrow">▾</span></summary>
+      <div id="locStatus" class="status" data-state="off">
+        <span class="dot"></span><span id="locStatusText">檢查定位支援中…</span>
+      </div>
+      <div class="row">
+        <button id="locateBtn" class="btn" type="button">📍 定位我</button>
+      </div>
+      <p id="whereNote" class="note">尚未設定位置 — 顯示全台北。</p>
+      <div class="row avatar-row">
+        <span class="note" style="margin:0">我的造型</span>
+        <div class="chips" id="avatarChips">
+          <button class="chip avatar on" data-value="mascot" type="button" title="台灣黑熊">🐻</button>
+          <button class="chip avatar" data-value="😋" type="button">😋</button>
+          <button class="chip avatar" data-value="🐱" type="button">🐱</button>
+          <button class="chip avatar" data-value="🐶" type="button">🐶</button>
+          <button class="chip avatar" data-value="🦖" type="button">🦖</button>
+          <button class="chip avatar" data-value="⭐" type="button">⭐</button>
+        </div>
+      </div>
+      <div class="row radius-row" id="radiusRow" hidden>
+        <span class="on-badge">距離篩選 ON</span>
+        <label for="radiusSel">半徑</label>
+        <select id="radiusSel">
+          <option value="500">500 m</option>
+          <option value="1000">1 km</option>
+          <option value="2000">2 km</option>
+          <option value="5000">5 km</option>
+          <option value="0" selected>不限</option>
+        </select>
+        <button id="clearLocBtn" class="btn btn-ghost" type="button">清除位置</button>
+      </div>
+    </details>
+
+    <details class="block fold">
+      <summary><h2 class="label">🚇 靠捷運站</h2><span class="picked" id="pickedMrt"></span><span class="arrow">▾</span></summary>
+      <div class="chips" id="mrtChips">
+        <button class="chip mrt on" data-value="0" type="button">不限</button>
+        <button class="chip mrt" data-value="300" type="button">300 m 內</button>
+        <button class="chip mrt" data-value="500" type="button">500 m 內</button>
+        <button class="chip mrt" data-value="800" type="button">800 m 內</button>
+      </div>
+    </details>
+
+    <details class="block fold" id="foldCategory">
+      <summary><h2 class="label">想吃什麼？</h2><span class="picked" id="pickedCategory"></span><span class="arrow">▾</span></summary>
+      <div class="chips" id="categoryChips"></div>
+    </details>
+
+    <details class="block fold" id="foldOccasion">
+      <summary><h2 class="label">場合／預算</h2><span class="picked" id="pickedOccasion"></span><span class="arrow">▾</span></summary>
+      <div class="chips" id="occasionChips"></div>
+      <div class="chips" id="priceChips" style="margin-top:8px">
+        <button class="chip" data-value="1" type="button">$ &lt;150</button>
+        <button class="chip" data-value="2" type="button">$$ 150–400</button>
+        <button class="chip" data-value="3" type="button">$$$ 400–1000</button>
+        <button class="chip" data-value="4" type="button">$$$$ 1000+</button>
+      </div>
+    </details>
+
+    <button id="resetBtn" class="btn btn-ghost" type="button">清除全部條件</button>
+  </aside>
+
+  <section class="content">
+    <div id="map" aria-label="地圖"></div>
+    <div class="results-head">
+      <span id="count" class="ink-red"></span>
+      <span id="sortNote" class="note"></span>
+    </div>
+    <ul id="list" class="cards"></ul>
+  </section>
+</main>
+
+
+<footer class="foot">
+  <p>訂位資訊來自 Google Places（每月更新）；「線上訂位」按鈕開 Google 地圖的訂位入口或官網。精選資料為社群整理，出發前請再確認。</p>
+  <p>大量店家資料 © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>（ODbL）。</p>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" crossorigin=""></script>
+<script src="js/app.js?v=35"></script>
+<script src="js/bear-bot.js?v=1"></script>
+</body>
+</html>

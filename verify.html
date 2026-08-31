@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>核對紀錄｜台北 × 聚餐</title>
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+  <meta name="googlebot" content="noindex, nofollow, noarchive">
+  <meta name="bingbot" content="noindex, nofollow, noarchive">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css?v=22">
+  <style>
+    .page { max-width: 1280px; margin: 0 auto; padding: 20px 24px 48px; }
+    .page h1 { font-size: 28px; margin: 6px 0 2px; }
+    .back { font-size: 14px; color: var(--blue); }
+    .vlayout { display: grid; grid-template-columns: 250px 1fr; gap: 20px; margin-top: 14px; }
+    @media (max-width: 800px) { .vlayout { grid-template-columns: 1fr; } }
+    .vchip { display: flex; justify-content: space-between; width: 100%; text-align: left; }
+    .vchip b { font-weight: 400; color: var(--muted); }
+    .chips.col { flex-direction: column; }
+    .chips.col .chip { width: 100%; display: flex; justify-content: space-between; }
+    #vq { width: 100%; margin-bottom: 0; }
+    .prog-mini { font-size: 13px; }
+  </style>
+</head>
+<body>
+<div class="page">
+  <p><a class="back" href="index.html">← 回台北 × 聚餐</a></p>
+  <h1>📋 核對紀錄</h1>
+  <p class="note" id="summary">載入中…</p>
+
+  <div class="vlayout">
+    <aside class="panel">
+      <section class="block">
+        <h2 class="label">搜尋店名</h2>
+        <input id="vq" type="search" placeholder="店名關鍵字…" autocomplete="off">
+      </section>
+      <section class="block">
+        <h2 class="label">結果分類</h2>
+        <div class="chips col" id="resChips"></div>
+      </section>
+      <section class="block">
+        <h2 class="label">批次日期</h2>
+        <div class="chips col" id="dateChips"></div>
+      </section>
+      <section class="block">
+        <h2 class="label">核對進度</h2>
+        <div id="progress" class="prog-mini"></div>
+      </section>
+    </aside>
+
+    <section>
+      <p class="note" id="countNote"></p>
+      <div class="table-wrap"><table id="verifyTable">
+        <thead><tr><th>日期</th><th>店名</th><th>結果</th><th>說明</th><th>差距</th><th>Google 評分</th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+    </section>
+  </div>
+</div>
+<script>
+(async () => {
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const RES = { match: '相符', 'coords-fixed': '座標已修', 'data-fixed': '資料已修', mismatch: '待修正', closed: '已歇業', unmatched: '未核對' };
+  const [log, osm] = await Promise.all([
+    fetch('data/verify_log.json', { cache: 'no-cache' }).then((r) => r.json()),
+    fetch('data/osm.json', { cache: 'no-cache' }).then((r) => r.json()),
+  ]);
+  const entries = log.runs.flatMap((run) => run.entries).sort((a, b) => b.date.localeCompare(a.date) || a.name.localeCompare(b.name, 'zh-Hant'));
+
+  // 進度
+  const rows = osm.rows;
+  const st = { total: rows.length, coord: rows.filter((o) => o.v || o.c || o.x || o.gd != null).length,
+    booking: rows.filter((o) => 'b' in o).length, closed: rows.filter((o) => o.c).length, reservable: rows.filter((o) => o.b === 1).length };
+  document.getElementById('progress').innerHTML = `
+    <div>座標：<b>${st.coord.toLocaleString()}</b> / ${st.total.toLocaleString()}<br><span class="ink-red">未核對 ${(st.total - st.coord).toLocaleString()}</span></div>
+    <div class="prog" style="margin:4px 0 10px"><div class="prog-fill" style="width:${Math.max(1, st.coord / st.total * 100)}%"></div></div>
+    <div>訂位：<b>${st.booking.toLocaleString()}</b> / ${st.total.toLocaleString()}<br><span class="ink-red">未查 ${(st.total - st.booking).toLocaleString()}</span></div>
+    <div class="prog" style="margin:4px 0 10px"><div class="prog-fill" style="width:${Math.max(1, st.booking / st.total * 100)}%"></div></div>
+    <p class="note">精選 35 家全數核對 ✓<br>可線上訂位 ${st.reservable} 家<br>已排除歇業 ${st.closed} 家<br>每天 09:30 自動跑一批</p>`;
+
+  const state = { res: '', date: '', q: '' };
+  const tally = {}; entries.forEach((e) => { tally[e.result] = (tally[e.result] || 0) + 1; });
+  document.getElementById('summary').textContent = `共 ${entries.length} 筆 · 最近一批 ${log.runs[log.runs.length - 1].date}`;
+
+  const resChips = document.getElementById('resChips');
+  resChips.innerHTML = `<button class="chip on" data-v=""><span>全部</span><b>${entries.length}</b></button>` +
+    Object.entries(tally).sort((a, b) => b[1] - a[1]).map(([k, v]) =>
+      `<button class="chip" data-v="${k}"><span><span class="res ${k}">${RES[k] || k}</span></span><b>${v}</b></button>`).join('');
+  const dates = [...new Set(entries.map((e) => e.date))];
+  const dateChips = document.getElementById('dateChips');
+  dateChips.innerHTML = `<button class="chip on" data-v=""><span>全部</span><b></b></button>` +
+    dates.map((d) => `<button class="chip" data-v="${d}"><span>${d}</span><b>${entries.filter((e) => e.date === d).length}</b></button>`).join('');
+
+  function bind(el, key) {
+    el.addEventListener('click', (e) => {
+      const b = e.target.closest('.chip'); if (!b) return;
+      state[key] = b.dataset.v;
+      el.querySelectorAll('.chip').forEach((c) => c.classList.toggle('on', c === b));
+      render();
+    });
+  }
+  bind(resChips, 'res'); bind(dateChips, 'date');
+  document.getElementById('vq').addEventListener('input', (e) => { state.q = e.target.value.trim().toLowerCase(); render(); });
+
+  function render() {
+    let list = entries;
+    if (state.res) list = list.filter((e) => e.result === state.res);
+    if (state.date) list = list.filter((e) => e.date === state.date);
+    if (state.q) list = list.filter((e) => e.name.toLowerCase().includes(state.q));
+    document.getElementById('countNote').textContent = `顯示 ${list.length} 筆`;
+    document.querySelector('#verifyTable tbody').innerHTML = list.slice(0, 500).map((e) => `<tr>
+      <td>${esc(e.date)}</td><td>${esc(e.name)}</td>
+      <td><span class="res ${esc(e.result)}">${RES[e.result] || esc(e.result)}</span></td>
+      <td>${esc(e.note)}</td><td>${e.distanceM != null ? `${e.distanceM} m` : '—'}</td>
+      <td>${e.rating != null ? `⭐ ${e.rating.toFixed(1)}（${(e.ratingCount || 0).toLocaleString()}）` : '—'}</td></tr>`).join('') +
+      (list.length > 500 ? '<tr><td colspan="6" class="note">僅顯示前 500 筆，請用篩選縮小</td></tr>' : '');
+  }
+  render();
+})();
+</script>
+</body>
+</html>

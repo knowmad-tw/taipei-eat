@@ -1,0 +1,3 @@
+User-agent: *
+Disallow: /verify.html
+Disallow: /data/verify_log.json
