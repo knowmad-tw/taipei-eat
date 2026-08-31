@@ -33,8 +33,8 @@
     form = root.querySelector('#bbForm'), input = root.querySelector('#bbText');
 
   // 位置：預設右上角，可拖曳，記在 localStorage
-  let pos = { right: 24, top: 84 };
-  try { pos = JSON.parse(localStorage.getItem('bear-pos')) || pos; } catch {}
+  let pos = { right: 12, top: 10 };   // 預設最右上角
+  try { pos = JSON.parse(localStorage.getItem('bear-pos-v2')) || pos; } catch {}
   const applyPos = () => {
     pos.right = Math.min(Math.max(pos.right, 4), window.innerWidth - 80);
     pos.top = Math.min(Math.max(pos.top, 4), window.innerHeight - 80);
@@ -53,7 +53,7 @@
     pos.right = drag.right - dx; pos.top = drag.top + dy; applyPos();
   });
   fab.addEventListener('pointerup', () => {
-    if (drag && drag.moved) { try { localStorage.setItem('bear-pos', JSON.stringify(pos)); } catch {} }
+    if (drag && drag.moved) { try { localStorage.setItem('bear-pos-v2', JSON.stringify(pos)); } catch {} }
     else togglePanel();
     drag = null;
   });
