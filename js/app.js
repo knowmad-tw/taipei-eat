@@ -535,11 +535,26 @@
   }
 
   // ---------- 一鍵：評分超高可訂位（可再點一次取消） ----------
+  // 自動縮放到能看到所有結果點位
+  function fitToResults() {
+    const rows = filtered();
+    if (!rows.length) return;
+    const pts = rows.slice(0, MAX_SHOW).map((r) => [r.lat, r.lng]);
+    if (state.origin) pts.push([state.origin.lat, state.origin.lng]);
+    map.fitBounds(pts, { padding: [30, 30], maxZoom: 16 });
+  }
+
   function topRatedBookable() {
-    if (state.minRating) { state.minRating = 0; el.topBtn.classList.remove('on'); render(); return; }
+    if (state.minRating) { state.minRating = 0; el.topBtn.classList.remove('on'); render(); fitToResults(); return; }
     state.minRating = 4.5; el.topBtn.classList.add('on');
     setMode('online');
-    document.querySelector('.results-head')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // 大地圖 modal 呈現全部點位，關掉再看清單
+    const rows = filtered();
+    if (rows.length) {
+      const pts = rows.slice(0, MAX_SHOW).map((r) => [r.lat, r.lng]);
+      if (state.origin) pts.push([state.origin.lat, state.origin.lng]);
+      showMapModal(pts);
+    }
   }
 
   function setMode(mode) {
