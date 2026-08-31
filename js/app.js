@@ -138,7 +138,7 @@
   }
 
   // ---------- 地圖 ----------
-  const map = L.map(el.map, { scrollWheelZoom: false }).setView([TAIPEI.lat, TAIPEI.lng], 12);
+  const map = L.map(el.map, { scrollWheelZoom: true }).setView([TAIPEI.lat, TAIPEI.lng], 12);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
   }).addTo(map);
@@ -411,7 +411,17 @@
     wrap.addEventListener('click', (e) => {
       const act = e.target.dataset.act;
       if (act === 'again') { wrap.remove(); randomPick(); }
-      else if (act === 'go') { wrap.remove(); map.flyTo([r.lat, r.lng], Math.max(map.getZoom(), 17), { duration: .8 }); setActive(r.id, false); }
+      else if (act === 'go') {
+        wrap.remove();
+        el.map.scrollIntoView({ behavior: 'smooth', block: 'center' });   // 先讓地圖進畫面
+        if (!markers.get(r.id)) {
+          const tm = L.marker([r.lat, r.lng], { icon: pinIcon(true, bookLevel(r)), zIndexOffset: 900 })
+            .bindTooltip(`${catIcon(r.category)} ${esc(r.name)}`, { permanent: true, direction: 'top', offset: [0, -8], className: 'pin-tip' });
+          markerLayer.addLayer(tm); markers.set(r.id, tm);
+        }
+        map.flyTo([r.lat, r.lng], Math.max(map.getZoom(), 16), { duration: .8 });
+        setActive(r.id, false);
+      }
       else if (act === 'close' || e.target === wrap) wrap.remove();
     });
     document.body.appendChild(wrap);
@@ -611,21 +621,10 @@
     ar.districts.forEach((d) => el.districtSel.add(new Option(d.name, d.name)));
     ar.mrt.forEach((m) => el.mrtSel.add(new Option(m.name, m.name)));
     buildChipsIcon(el.categoryChips, uniq(rs.map((r) => r.category)));
-    buildChips(el.occasionChips, uniq(rs.flatMap((r) => r.occasions || [])));
     bindChips(el.categoryChips, state.category);
-    bindChips(el.occasionChips, state.occasion);
     bindChips(el.priceChips, state.price);
     el.modeChips.addEventListener('click', (e) => {
       const b = e.target.closest('.chip'); if (b) setMode(b.dataset.value);
-    });
-    const avatarChips = $('avatarChips');
-    avatarChips.querySelectorAll('.chip').forEach((c) => c.classList.toggle('on', c.dataset.value === state.avatar));
-    avatarChips.addEventListener('click', (e) => {
-      const b = e.target.closest('.chip'); if (!b) return;
-      state.avatar = b.dataset.value;
-      try { localStorage.setItem('me-avatar', state.avatar); } catch {}
-      avatarChips.querySelectorAll('.chip').forEach((c) => c.classList.toggle('on', c === b));
-      drawOrigin();
     });
     el.mrtChips.addEventListener('click', (e) => {
       const b = e.target.closest('.chip'); if (!b) return;
