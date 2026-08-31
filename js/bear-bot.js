@@ -33,27 +33,28 @@
     form = root.querySelector('#bbForm'), input = root.querySelector('#bbText');
 
   // 位置：預設右上角，可拖曳，記在 localStorage
-  let pos = { right: 12, top: 10 };   // 預設最右上角
-  try { pos = JSON.parse(localStorage.getItem('bear-pos-v2')) || pos; } catch {}
+  let pos = { left: 16, bottom: 16 };  // 預設左下角
+  try { const p = JSON.parse(localStorage.getItem('bear-pos-v3')); if (p && p.left != null) pos = p; } catch {}
   const applyPos = () => {
-    pos.right = Math.min(Math.max(pos.right, 4), window.innerWidth - 80);
-    pos.top = Math.min(Math.max(pos.top, 4), window.innerHeight - 80);
-    root.style.right = pos.right + 'px'; root.style.top = pos.top + 'px';
+    pos.left = Math.min(Math.max(pos.left, 4), window.innerWidth - 80);
+    pos.bottom = Math.min(Math.max(pos.bottom, 4), window.innerHeight - 80);
+    root.style.left = pos.left + 'px'; root.style.bottom = pos.bottom + 'px';
+    root.style.right = 'auto'; root.style.top = 'auto';
   };
   applyPos();
   let drag = null;
   fab.addEventListener('pointerdown', (e) => {
-    drag = { x: e.clientX, y: e.clientY, right: pos.right, top: pos.top, moved: false };
+    drag = { x: e.clientX, y: e.clientY, left: pos.left, bottom: pos.bottom, moved: false };
     fab.setPointerCapture(e.pointerId);
   });
   fab.addEventListener('pointermove', (e) => {
     if (!drag) return;
     const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
     if (Math.abs(dx) + Math.abs(dy) > 5) drag.moved = true;
-    pos.right = drag.right - dx; pos.top = drag.top + dy; applyPos();
+    pos.left = drag.left + dx; pos.bottom = drag.bottom - dy; applyPos();
   });
   fab.addEventListener('pointerup', () => {
-    if (drag && drag.moved) { try { localStorage.setItem('bear-pos-v2', JSON.stringify(pos)); } catch {} }
+    if (drag && drag.moved) { try { localStorage.setItem('bear-pos-v3', JSON.stringify(pos)); } catch {} }
     else togglePanel();
     drag = null;
   });
