@@ -290,7 +290,11 @@
     const labelAll = rows.length <= 60;   // 店少時直接長出名字標籤，多了改滑過顯示
     rows.forEach((r) => {
       const m = L.marker([r.lat, r.lng], { icon: pinIcon(r.id === state.activeId, r.lv) })
-        .bindTooltip(`${catIcon(r.category)} ${esc(r.name)}${r.lv === 2 ? ' 🪑' : r.lv === 1 ? ' 📞' : ''}`, { permanent: labelAll, direction: 'top', offset: [0, -8], className: 'pin-tip' })
+        .bindTooltip(
+          state.minRating && r.google?.rating != null
+            ? `⭐${r.google.rating.toFixed(1)}（${(r.google.userRatingCount || 0).toLocaleString()} 則）${esc(r.name)}`
+            : `${catIcon(r.category)} ${esc(r.name)}${r.lv === 2 ? ' 🪑' : r.lv === 1 ? ' 📞' : ''}`,
+          { permanent: labelAll, direction: 'top', offset: [0, -8], className: 'pin-tip' })
         .bindPopup(`<b>${esc(r.name)}</b><br><a href="${navUrl(r)}" target="_blank" rel="noopener noreferrer">🧭 導航</a>`);
       m.on('click', () => setActive(r.id, false));
       markerLayer.addLayer(m); markers.set(r.id, m);
@@ -557,6 +561,7 @@
   function topRatedBookable() {
     if (state.minRating) { state.minRating = 0; el.topBtn.classList.remove('on'); render(); fitToResults(); return; }
     state.minRating = 4.5; el.topBtn.classList.add('on');
+    state.radius = 0; el.radiusSel.value = '0';   // 不限縮附近，看全台北
     setMode('online');
     // 大地圖 modal 呈現全部點位，關掉再看清單
     const rows = filtered();
