@@ -49,7 +49,7 @@
   // ---------- 訂位判斷（核心） ----------
   // level 2 = 線上訂位（Google 標示 reservable）；1 = 有電話可訂；0 = 只能現場
   function bookLevel(r) {
-    if (r.booking?.reservable || r.b === 1) return 2;   // 精選 Google reservable 或 OSM 補查到可訂
+    if (r.booking?.reservable || r.b === 1 || r.bookingUrl) return 2;   // 精選 Google reservable 或 OSM 補查到可訂
     if (r.phone) return 1;
     return 0;
   }
@@ -62,8 +62,8 @@
   function bookCtaParts(r) {
     const lv = bookLevel(r);
     const parts = [];
-    if (lv === 2) {
-      const u = r.google?.mapsUri || r.mapsUri || r.url;
+    if (lv === 2 || r.bookingUrl) {
+      const u = r.bookingUrl || r.google?.mapsUri || r.mapsUri || r.url;
       if (u) parts.push(`<a class="cta" href="${esc(u)}" target="_blank" rel="noopener noreferrer">🪑 馬上線上訂位</a>`);
     }
     if (r.phone) parts.push(`<a class="cta tel" href="tel:${esc(r.phone.replace(/[\s-]/g, ''))}">📞 ${esc(fmtPhone(r.phone))}</a>`);
@@ -146,6 +146,32 @@
   const markerLayer = L.layerGroup().addTo(map);
   let meMarker = null, radiusCircle = null;
   const markers = new Map();
+  const markerRows = new Map();   // marker id → row（給標籤避讓排優先序）
+
+  // 標籤避讓：重疊時只留優先序高的（訂位等級 > 評分）
+  function declutterLabels() {
+    const kept = [];
+    const entries = [];
+    markers.forEach((m, id) => {
+      const t = m.getTooltip && m.getTooltip();
+      if (!t || !t.options.permanent) return;
+      const el2 = t.getElement && t.getElement();
+      if (!el2) return;
+      el2.style.display = '';
+      const row = markerRows.get(id) || {};
+      entries.push({ el: el2, prio: (row.lv || 0) * 10 + (ratingOf(row) || 0) });
+    });
+    entries.sort((a, b) => b.prio - a.prio);
+    // 內縮矩形再判定：允許輕微交疊，避免整片被藏
+    const shrink = (r) => ({ left: r.left + r.width * 0.22, right: r.right - r.width * 0.22, top: r.top + 5, bottom: r.bottom - 5 });
+    for (const e of entries) {
+      const r1 = shrink(e.el.getBoundingClientRect());
+      const hit = kept.some((k) => !(r1.right < k.left || r1.left > k.right || r1.bottom < k.top || r1.top > k.bottom));
+      if (hit) e.el.style.display = 'none';
+      else kept.push(r1);
+    }
+  }
+  map.on('zoomend moveend', () => setTimeout(declutterLabels, 60));
   const pinIcon = (active, lv) => L.divIcon({
     className: '', html: `<div class="pin${active ? ' active' : ''} lv${lv}"></div>`,
     iconSize: [18, 18], iconAnchor: [9, 9], popupAnchor: [0, -10],
@@ -281,7 +307,7 @@
       (state.mode === 'all' ? '' : '線上訂位優先，') +
       (state.origin ? `依距離「${state.origin.label}」排序` : '設定位置後依距離排序');
 
-    markerLayer.clearLayers(); markers.clear();
+    markerLayer.clearLayers(); markers.clear(); markerRows.clear();
     el.list.innerHTML = '';
     if (!rows.length) {
       el.list.innerHTML = '<li class="empty">沒有符合的 — 放寬半徑或條件，或切到「全部店家」。</li>';
@@ -298,7 +324,7 @@
           { permanent: labelAll, direction: 'top', offset: [0, -8], className: 'pin-tip' })
         .bindPopup(`<b>${esc(r.name)}</b><br><a href="${navUrl(r)}" target="_blank" rel="noopener noreferrer">🧭 導航</a>`);
       m.on('click', () => setActive(r.id, false));
-      markerLayer.addLayer(m); markers.set(r.id, m);
+      markerLayer.addLayer(m); markers.set(r.id, m); markerRows.set(r.id, r);
 
       const li = document.createElement('li');
       li.className = 'card' + (r.id === state.activeId ? ' active' : '') + (r.osm ? ' osm' : '');
@@ -330,6 +356,7 @@
     }
     el.list.appendChild(frag);
     if (!state.origin && rows.length) map.fitBounds(rows.map((r) => [r.lat, r.lng]), { padding: [24, 24], maxZoom: 15 });
+    setTimeout(declutterLabels, 80);
   }
 
   function setActive(id, fly) {

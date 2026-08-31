@@ -756,7 +756,8 @@
       "reservable": true,
       "checkedAt": "2026-08-31"
     },
-    "phone": "02 2377 7799"
+    "phone": "02 2377 7799",
+    "bookingUrl": "https://inline.app/booking/-KO9-zyZTRpTH7LNAe99/-LOcon_dHjl7H4_PR39w?language=zh-tw"
   },
   {
     "id": "orange-shabu",
@@ -801,7 +802,8 @@
       "reservable": true,
       "checkedAt": "2026-08-31"
     },
-    "phone": "02 2776 1658"
+    "phone": "02 2776 1658",
+    "bookingUrl": "https://inline.app/booking/-LL7w1Y0HNb5dvdA1v7N:inline-live-2a466?language=zh-tw"
   },
   {
     "id": "addiction-aquatic",
@@ -980,7 +982,8 @@
       "reservable": true,
       "checkedAt": "2026-08-31"
     },
-    "phone": "02 2365 6222"
+    "phone": "02 2365 6222",
+    "bookingUrl": "https://inline.app/booking/-KXKjbMyZzEgAYIwbVnO:inline-live-2ndfloor?language=zh-tw"
   },
   {
     "id": "fika-fika-cafe",

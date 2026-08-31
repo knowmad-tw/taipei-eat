@@ -1,0 +1,14 @@
+{
+  "name": "台北 × 聚餐｜快速訂位",
+  "short_name": "台北聚餐",
+  "description": "現在訂得到位的台北餐廳",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#111111",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
