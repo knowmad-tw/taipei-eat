@@ -157,7 +157,7 @@
     { re: /(核對進度|核對紀錄|進度)/,
       fn: () => { const s = API().stats(); return { html: `目前進度：座標核對 ${((s.coord || 0)).toLocaleString()} / ${(s.total || 0).toLocaleString()}，可線上訂位 ${s.reservable || 0} 家，已排除歇業 ${s.closed || 0} 家。<br><a href="verify.html" target="_blank">開核對紀錄頁 ↗</a>`, chips: [] }; } },
     { re: /(評分|星等|評論|留言)(哪|怎|是)/,
-      fn: () => ({ html: '⭐ 評分來自 Google（含則數），點卡片右上的評分印章可以看最新網友留言，也有連結去 Google 看全部。', chips: [] }) },
+      fn: () => ({ html: '⭐ 評分來自 Google（含則數），點卡片右上的評分印章開細節，裡面有連結直達 Google 看網友評論。', chips: [] }) },
 
     // 預算
     { re: /(便宜|平價|省錢|銅板|窮)/,

@@ -86,7 +86,7 @@
         <h2>${esc(r.name)}</h2>
         <div class="meta" style="color:#666">${catIcon(r.category)} ${esc(r.category)}${r.price ? ` · ${PRICE_LABEL[r.price]}` : ''} · ${esc(r.district)}${r.dist != null ? ` · <span style="color:#e8792b">${fmtDist(r.dist)}</span>` : ''}</div>
         ${r.reason ? `<div class="why"><b>為什麼推</b>${esc(r.reason)}</div>` : ''}
-        ${(() => { const html = googleBlock(r); if (html) return html.replace('<details>', '<details open>');
+        ${(() => { const html = googleBlock(r); if (html) return html;
           return ratingOf(r) != null ? `<div class="g"><span class="g-rating">⭐ ${ratingOf(r).toFixed(1)}</span> <span class="muted">（${ratingCountOf(r).toLocaleString()} 則 · Google）</span> <a class="all-reviews" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.name + ' ' + (r.address || ''))}" target="_blank" rel="noopener noreferrer">去 Google 看評論 ↗</a></div>` : ''; })()}
         ${bookCta(r)}
         <div class="hours">🕒 ${esc(r.hours || '—')}</div>
@@ -131,13 +131,10 @@
     const age = Math.floor((Date.now() - new Date(g.checkedAt)) / 86400000);
     const stale = age > 30;
     const closed = g.businessStatus === 'CLOSED_PERMANENTLY' ? ' <span class="ink-red">🚫 永久歇業</span>' : '';
-    const reviews = (g.reviews || []).map((v) =>
-      `<li><b>${'★'.repeat(v.rating || 0)}</b> ${esc(v.text)} <span class="muted">— ${esc(v.author)}，${esc(v.when)}</span></li>`).join('');
     return `<div class="g${stale ? ' stale' : ''}">
       <span class="g-rating">${g.rating != null ? `⭐ ${g.rating.toFixed(1)}` : '無評分'}</span>
       <span class="muted">（${(g.userRatingCount || 0).toLocaleString()} 則）</span>${closed}
-      <a class="all-reviews" href="${esc(g.mapsUri || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.name)}`)}" target="_blank" rel="noopener noreferrer">去 Google 看全部評論 ↗</a>
-      ${reviews ? `<details><summary>網友留言（${g.reviews.length}）</summary><ul class="reviews">${reviews}</ul></details>` : ''}
+      <a class="all-reviews" href="${esc(g.mapsUri || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.name)}`)}" target="_blank" rel="noopener noreferrer">去 Google 看網友評論 ↗</a>
     </div>`;
   }
 

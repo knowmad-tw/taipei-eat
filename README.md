@@ -119,6 +119,13 @@ scripts/fetch_osm.py   從 Overpass API 重抓 OSM 資料
 docs/                  設計文件
 ```
 
+## 授權聲明
+
+- **程式碼**：MIT License（見 [LICENSE](LICENSE)）。
+- **`data/osm.json`**：衍生自 © [OpenStreetMap contributors](https://www.openstreetmap.org/copyright)，依 [ODbL 1.0](https://opendatacommons.org/licenses/odbl/) 授權散布；使用本資料檔須遵守 ODbL（姓名標示、相同方式分享）。
+- **Google Places 資訊**（⭐ 評分、評論數、可訂位、營業狀態）：© Google，僅供本站即時展示、依 30 天週期更新；留言全文不儲存，一律引導至 Google 地圖閱讀。
+- 地圖圖磚：© OpenStreetMap contributors。字型：LXGW WenKai TC（OFL）。
+
 ## 致謝
 
 視覺語言（純白、黑細線手繪、大量留白、紅橙藍批註）參考 [helloianneo/ian-xiaohei-illustrations](https://github.com/helloianneo/ian-xiaohei-illustrations)（MIT）的風格 DNA。其「小黑」角色為作者 Ian 的 IP，本站未使用，吉祥物「小飯」為自製。

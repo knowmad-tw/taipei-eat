@@ -56,7 +56,7 @@ def text_search(key, r):
     return (res.get('places') or [None])[0]
 
 def details(key, place_id):
-    fields = 'rating,userRatingCount,priceLevel,businessStatus,reviews'
+    fields = 'rating,userRatingCount,priceLevel,businessStatus'
     return call(f'https://places.googleapis.com/v1/places/{place_id}?languageCode={LANG}', key, fields)
 
 PRICE = {'PRICE_LEVEL_INEXPENSIVE': 1, 'PRICE_LEVEL_MODERATE': 2, 'PRICE_LEVEL_EXPENSIVE': 3, 'PRICE_LEVEL_VERY_EXPENSIVE': 4}
@@ -121,16 +121,13 @@ def main():
             report.append((r['name'], '❌ Google 找不到')); continue
         loc = p['location']; dist = haversine(r['lat'], r['lng'], loc['latitude'], loc['longitude'])
         d = details(key, p['id']); time.sleep(0.2)
-        reviews = [{'author': (v.get('authorAttribution') or {}).get('displayName', ''), 'rating': v.get('rating'),
-                    'when': v.get('relativePublishTimeDescription', ''),
-                    'text': ((v.get('text') or {}).get('text') or '')[:200]} for v in (d.get('reviews') or [])[:3]]
         r['placeId'] = p['id']
         r['google'] = {
             'checkedAt': today.isoformat(), 'found': True,
             'name': (p.get('displayName') or {}).get('text', ''), 'address': p.get('formattedAddress', ''),
             'distanceM': round(dist), 'businessStatus': d.get('businessStatus') or p.get('businessStatus', ''),
             'rating': d.get('rating'), 'userRatingCount': d.get('userRatingCount'),
-            'priceLevel': PRICE.get(d.get('priceLevel')), 'mapsUri': p.get('googleMapsUri', ''), 'reviews': reviews,
+            'priceLevel': PRICE.get(d.get('priceLevel')), 'mapsUri': p.get('googleMapsUri', ''),
         }
         # 座標核對：只改 verified 布林，不用 Google 座標覆蓋我們的資料
         if dist <= MATCH_M:
